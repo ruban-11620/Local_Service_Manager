@@ -1283,6 +1283,26 @@ body {
   color: var(--text);
   word-break: break-all;
 }
+.config-item input {
+  width: 100%;
+  background: var(--card-bg);
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  padding: 9px 11px;
+  color: var(--text);
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px;
+  outline: none;
+  transition: border-color 0.16s ease, box-shadow 0.16s ease;
+}
+.config-item input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-glow);
+}
+.config-item input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
 
 .activity-list {
   display: flex;
@@ -1780,7 +1800,7 @@ body {
         <span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
       </button>
     </div>
-    <p class="modal-desc">Register a local Node.js repository. The manager executes <code>npm start</code> inside this directory.</p>
+    <p class="modal-desc">Register a local service repository. By default, the manager executes <code>npm start</code> inside this directory.</p>
     <form id="addForm" onsubmit="submitNewService(event)">
       <div class="field">
         <label for="name">Service Name</label>
@@ -1789,7 +1809,11 @@ body {
       <div class="field">
         <label for="cwd">Repository Folder (Absolute Path)</label>
         <input type="text" id="cwd" placeholder="D:\Projects\my-service" required autocomplete="off">
-        <div class="field-hint">Must contain a <code>package.json</code> file with a <code>start</code> script.</div>
+        <div class="field-hint">Folder path containing your project (and <code>package.json</code> for npm commands).</div>
+      </div>
+      <div class="field">
+        <label for="command">Start Command</label>
+        <input type="text" id="command" value="npm start" placeholder="npm start" required autocomplete="off" style="font-family:'JetBrains Mono',monospace;">
       </div>
       <div class="modal-foot">
         <button type="button" class="btn btn-ghost" onclick="closeAddModal()">Cancel</button>
@@ -1814,6 +1838,7 @@ let autoScroll = true;
 let isLineWrap = true;
 let unreadServices = new Set();
 let serverOnline = true;
+let isEditingConfig = false;
 const startTimes = new Map();
 
 const $ = id => document.getElementById(id);
@@ -1985,7 +2010,7 @@ function deriveServiceMeta(service) {
         lastExitState = exM[1] === '0' ? 'ok' : 'warn';
       }
     }
-    if (!lastStartMs && /Starting:\s*npm start/i.test(clean) && tsM) {
+    if (!lastStartMs && /Starting:\s*/i.test(clean) && tsM) {
       lastStartMs = parseTimestampMs(tsM[1]);
     }
     if (lastExitCode !== '—' && lastStartMs) break;
@@ -2145,6 +2170,7 @@ function renderServiceCards() {
 
 function selectService(id) {
   activeServiceId = id;
+  isEditingConfig = false;
   unreadServices.delete(id);
   closeContextMenu();
   renderServiceCards();
@@ -2195,7 +2221,7 @@ function renderActiveDetails(forceScroll = false) {
   $('btnDetailMenu').disabled = false;
 
   const meta = deriveServiceMeta(active);
-  $('metaCommand').textContent = 'npm start';
+  $('metaCommand').textContent = active.command || 'npm start';
   $('metaStatus').textContent = isRunning ? 'Running' : 'Stopped';
   $('metaStatus').className = `meta-value ${isRunning ? 'ok' : ''}`;
   $('metaExitCode').textContent = meta.lastExitCode;
@@ -2231,7 +2257,7 @@ function renderLogConsole(active, meta, forceScroll) {
   });
 
   if (logs.length === 0) {
-    $('terminalLines').innerHTML = `<div class="empty-state" style="padding:48px 24px;"><h3>No console output yet</h3><p>Click <strong>Start Service</strong> to launch <code>npm start</code> and stream real-time logs.</p></div>`;
+    $('terminalLines').innerHTML = `<div class="empty-state" style="padding:48px 24px;"><h3>No console output yet</h3><p>Click <strong>Start Service</strong> to launch <code>${escHtml(active.command || 'npm start')}</code> and stream real-time logs.</p></div>`;
   } else if (filtered.length === 0) {
     $('terminalLines').innerHTML = `<div class="empty-state" style="padding:48px 24px;"><h3>No matching log events</h3><p>No log entries match your current text or level filter.</p></div>`;
   } else {
@@ -2259,28 +2285,81 @@ function renderSecondaryTabs() {
   }
 
   if (currentTab === 'config') {
-    $('configContent').innerHTML = `
-      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
-        <div>
-          <h3 style="font-size:15px;font-weight:600;">Service Configuration</h3>
-          <p style="font-size:12px;color:var(--text-muted);margin-top:2px;">Stored locally in <code>services.json</code>. Dashboard binds strictly to <code>127.0.0.1:4173</code>.</p>
+    if (isEditingConfig && $('cfgForm')) return;
+    const isRunning = active.status === 'running';
+    if (isEditingConfig) {
+      $('configContent').innerHTML = `
+        <form id="cfgForm" onsubmit="saveConfigEdit(event)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+            <div>
+              <h3 style="font-size:15px;font-weight:600;">Edit Service Configuration</h3>
+              <p style="font-size:12px;color:var(--text-muted);margin-top:2px;">
+                ${isRunning ? 'Service is running — stop it first to modify Path or Start Command.' : 'Edit display name, directory path, or start command and click Save.'}
+              </p>
+            </div>
+            <div style="display:flex;align-items:center;gap:8px;">
+              <button type="button" class="btn btn-ghost" onclick="cancelConfigEdit()">Cancel</button>
+              <button type="submit" class="btn btn-success-solid" id="btnSaveConfig">
+                <span class="icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span>
+                Save Changes
+              </button>
+            </div>
+          </div>
+          <div class="config-grid">
+            <div class="config-item">
+              <label for="cfgName">Display Name</label>
+              <input id="cfgName" type="text" value="${escHtml(active.name)}" required autocomplete="off">
+            </div>
+            <div class="config-item">
+              <label for="cfgCommand">Start Command</label>
+              <input id="cfgCommand" type="text" value="${escHtml(active.command || 'npm start')}" placeholder="npm start" ${isRunning ? 'disabled' : ''} required autocomplete="off">
+            </div>
+            <div class="config-item" style="grid-column:1/-1;">
+              <label for="cfgCwd">Repository Working Directory (Path)</label>
+              <input id="cfgCwd" type="text" value="${escHtml(active.cwd)}" ${isRunning ? 'disabled' : ''} required autocomplete="off">
+            </div>
+            <div class="config-item">
+              <label>Service ID</label>
+              <div class="val" style="color:var(--text-muted);">${escHtml(active.id)}</div>
+            </div>
+            <div class="config-item">
+              <label>Session Log Buffer</label>
+              <div class="val" style="color:var(--text-muted);">Latest 500 lines (in-memory)</div>
+            </div>
+          </div>
+        </form>`;
+      const nameInput = $('cfgName');
+      if (nameInput) nameInput.focus();
+    } else {
+      $('configContent').innerHTML = `
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;flex-wrap:wrap;gap:10px;">
+          <div>
+            <h3 style="font-size:15px;font-weight:600;">Service Configuration</h3>
+            <p style="font-size:12px;color:var(--text-muted);margin-top:2px;">Stored locally in <code>services.json</code>. Dashboard binds strictly to <code>127.0.0.1:4173</code>.</p>
+          </div>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <button class="btn btn-primary" id="btnEditConfig" onclick="startConfigEdit()">
+              <span class="icon"><svg viewBox="0 0 24 24"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"></path><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"></path></svg></span>
+              Edit
+            </button>
+            <button class="btn btn-danger" onclick="removeService('${active.id}','${escHtml(active.name)}')">Remove Service</button>
+          </div>
         </div>
-        <button class="btn btn-danger" onclick="removeService('${active.id}','${escHtml(active.name)}')">Remove Service</button>
-      </div>
-      <div class="config-grid">
-        <div class="config-item"><label>Service ID</label><div class="val">${escHtml(active.id)}</div></div>
-        <div class="config-item"><label>Display Name</label><div class="val">${escHtml(active.name)}</div></div>
-        <div class="config-item" style="grid-column:1/-1;"><label>Repository Working Directory</label><div class="val">${escHtml(active.cwd)}</div></div>
-        <div class="config-item"><label>Start Command</label><div class="val">npm start</div></div>
-        <div class="config-item"><label>Session Log Buffer</label><div class="val">Latest 500 lines (in-memory)</div></div>
-      </div>`;
+        <div class="config-grid">
+          <div class="config-item"><label>Display Name</label><div class="val">${escHtml(active.name)}</div></div>
+          <div class="config-item"><label>Start Command</label><div class="val">${escHtml(active.command || 'npm start')}</div></div>
+          <div class="config-item" style="grid-column:1/-1;"><label>Repository Working Directory (Path)</label><div class="val">${escHtml(active.cwd)}</div></div>
+          <div class="config-item"><label>Service ID</label><div class="val">${escHtml(active.id)}</div></div>
+          <div class="config-item"><label>Session Log Buffer</label><div class="val">Latest 500 lines (in-memory)</div></div>
+        </div>`;
+    }
   } else if (currentTab === 'activity') {
     const events = (active.logs || [])
       .map(l => ({ raw: l, parsed: parseLogLine(l) }))
       .filter(({ parsed }) =>
         parsed.level === 'EXIT' ||
         parsed.level === 'ERROR' ||
-        /Starting:\s*npm start|Stop requested|Server running|Database connected/i.test(parsed.clean)
+        /Starting:\s*|Stop requested|Server running|Database connected/i.test(parsed.clean)
       )
       .reverse()
       .slice(0, 40);
@@ -2458,9 +2537,45 @@ async function removeService(id, name) {
   } catch (err) { toast(err.message, 'error'); }
 }
 
+function startConfigEdit() {
+  isEditingConfig = true;
+  renderSecondaryTabs();
+}
+
+function cancelConfigEdit() {
+  isEditingConfig = false;
+  renderSecondaryTabs();
+}
+
+async function saveConfigEdit(e) {
+  e.preventDefault();
+  const active = services.find(s => s.id === activeServiceId);
+  if (!active) return;
+
+  const btn = $('btnSaveConfig');
+  const payload = {
+    name: $('cfgName').value.trim(),
+    cwd: $('cfgCwd').value.trim(),
+    command: $('cfgCommand').value.trim() || 'npm start'
+  };
+
+  try {
+    btn.disabled = true;
+    btn.textContent = 'Saving...';
+    await api(`/api/services/${active.id}`, 'PUT', payload);
+    isEditingConfig = false;
+    toast('Configuration saved', 'success');
+    await refreshServices();
+  } catch (err) {
+    toast(err.message, 'error');
+    btn.disabled = false;
+    btn.textContent = 'Save Changes';
+  }
+}
+
 // Modal
 function openAddModal() { $('addModal').classList.add('open'); $('name').focus(); }
-function closeAddModal() { $('addModal').classList.remove('open'); $('addForm').reset(); }
+function closeAddModal() { $('addModal').classList.remove('open'); $('addForm').reset(); if ($('command')) $('command').value = 'npm start'; }
 
 async function submitNewService(e) {
   e.preventDefault();
@@ -2468,7 +2583,11 @@ async function submitNewService(e) {
   try {
     btn.disabled = true;
     btn.textContent = 'Adding...';
-    const added = await api('/api/services', 'POST', { name: $('name').value.trim(), cwd: $('cwd').value.trim() });
+    const added = await api('/api/services', 'POST', {
+      name: $('name').value.trim(),
+      cwd: $('cwd').value.trim(),
+      command: ($('command')?.value || '').trim() || 'npm start'
+    });
     toast(`Added "${added.name}"`, 'success');
     closeAddModal();
     activeServiceId = added.id;

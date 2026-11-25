@@ -24,6 +24,7 @@ function loadServices() {
       id: s.id,
       name: s.name,
       cwd: s.cwd,
+      command: String(s.command || "npm start").trim() || "npm start",
       logs: []
     }));
   } catch {
@@ -32,7 +33,12 @@ function loadServices() {
 }
 
 function save() {
-  const clean = services.map(({ id, name, cwd }) => ({ id, name, cwd }));
+  const clean = services.map(({ id, name, cwd, command }) => ({
+    id,
+    name,
+    cwd,
+    command: command || "npm start"
+  }));
   fs.writeFileSync(DATA_FILE, JSON.stringify(clean, null, 2));
 }
 
@@ -171,6 +177,7 @@ function publicService(s) {
     id: s.id,
     name: s.name,
     cwd: s.cwd,
+    command: s.command || "npm start",
     status: processes.has(s.id) ? "running" : "stopped",
     logs: s.logs || []
   };
@@ -208,11 +215,11 @@ function readBody(req) {
 
 function startService(service) {
   if (processes.has(service.id)) return false;
-  const npm = process.platform === "win32" ? "npm.cmd" : "npm";
-  log(service.id, `Starting: npm start (${service.cwd})`);
-  const child = spawn(npm, ["start"], {
+  const cmd = String(service.command || "npm start").trim() || "npm start";
+  log(service.id, `Starting: ${cmd} (${service.cwd})`);
+  const child = spawn(cmd, [], {
     cwd: service.cwd,
-    shell: process.platform === "win32",
+    shell: true,
     windowsHide: true,
     detached: process.platform !== "win32",
     env: { ...process.env, FORCE_COLOR: "0" }
@@ -295,16 +302,51 @@ async function handle(req, res) {
   if (req.method === "POST" && url.pathname === "/api/services") {
     const body = await readBody(req);
     const name = String(body.name || "").trim();
-    const cwd = path.resolve(String(body.cwd || "").trim());
-    if (!name || !body.cwd) return send(res, 400, { error: "Service name and folder path are required." });
-    if (!fs.existsSync(path.join(cwd, "package.json"))) {
+    const rawCwd = String(body.cwd || "").trim();
+    const command = String(body.command || "npm start").trim() || "npm start";
+    if (!name || !rawCwd) return send(res, 400, { error: "Service name and folder path are required." });
+    const cwd = path.resolve(rawCwd);
+    if (!fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory()) {
+      return send(res, 400, { error: "Directory not found. Enter a valid absolute folder path." });
+    }
+    if (/^npm(\.cmd)?\s+start\b/i.test(command) && !fs.existsSync(path.join(cwd, "package.json"))) {
       return send(res, 400, { error: "No package.json found in that folder. Enter the repository root folder." });
     }
     const id = require("node:crypto").randomUUID();
-    services.push({ id, name, cwd, logs: [] });
+    services.push({ id, name, cwd, command, logs: [] });
     save();
     broadcast({ type: "changed" });
     return send(res, 201, publicService(services[services.length - 1]));
+  }
+
+  if ((req.method === "PUT" || req.method === "PATCH") && /^\/api\/services\/([^/]+)$/.test(url.pathname)) {
+    const id = url.pathname.split("/").pop();
+    const service = services.find(s => s.id === id);
+    if (!service) return send(res, 404, { error: "Service not found." });
+
+    const body = await readBody(req);
+    const name = String(body.name ?? service.name).trim();
+    const rawCwd = String(body.cwd ?? service.cwd).trim();
+    const command = String(body.command ?? service.command ?? "npm start").trim() || "npm start";
+
+    if (!name || !rawCwd) return send(res, 400, { error: "Display name and repository path are required." });
+    const cwd = path.resolve(rawCwd);
+    if (!fs.existsSync(cwd) || !fs.statSync(cwd).isDirectory()) {
+      return send(res, 400, { error: "Directory not found. Enter a valid absolute folder path." });
+    }
+    if (/^npm(\.cmd)?\s+start\b/i.test(command) && !fs.existsSync(path.join(cwd, "package.json"))) {
+      return send(res, 400, { error: "No package.json found in that folder for npm start." });
+    }
+    if (processes.has(id) && (cwd !== service.cwd || command !== (service.command || "npm start"))) {
+      return send(res, 409, { error: "Stop the service before changing its repository path or start command." });
+    }
+
+    service.name = name;
+    service.cwd = cwd;
+    service.command = command;
+    save();
+    broadcast({ type: "changed" });
+    return send(res, 200, publicService(service));
   }
 
   const match = url.pathname.match(/^\/api\/services\/([^/]+)\/(start|stop|restart)$/);
