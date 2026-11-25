@@ -1,0 +1,1641 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Local Service Manager</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='%233b82f6' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'><polygon points='12 2 2 7 12 12 22 7 12 2'/><polyline points='2 17 12 22 22 17'/><polyline points='2 12 12 17 22 12'/></svg>">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  color-scheme: dark;
+  --bg-base: #060913;
+  --bg-sidebar: #0b1120;
+  --bg-card: #111827;
+  --bg-card-hover: #172238;
+  --bg-card-active: #1a2744;
+  --border: #1f2c47;
+  --border-focus: #3b82f6;
+  --text-main: #f8fafc;
+  --text-muted: #94a3b8;
+  --text-dim: #64748b;
+  
+  --emerald: #10b981;
+  --emerald-glow: rgba(16, 185, 129, 0.2);
+  --emerald-bg: #06281e;
+  --emerald-border: #0e5a44;
+  
+  --rose: #f43f5e;
+  --rose-bg: #2d121c;
+  --rose-border: #5c1d30;
+  
+  --blue: #3b82f6;
+  --blue-hover: #2563eb;
+  --blue-glow: rgba(59, 130, 246, 0.25);
+  
+  --amber: #f59e0b;
+}
+
+* { box-sizing: border-box; margin: 0; padding: 0; }
+
+body {
+  background: var(--bg-base);
+  color: var(--text-main);
+  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  line-height: 1.5;
+  height: 100vh;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Scrollbar styles */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: #263554; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #3b4e75; }
+
+/* SVG icons helper */
+.icon {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+}
+.icon svg { width: 100%; height: 100%; fill: none; stroke: currentColor; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+
+/* Buttons */
+button {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: #192338;
+  color: var(--text-main);
+  border: 1px solid var(--border);
+  padding: 6px 11px;
+  border-radius: 7px;
+  font-size: 12px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  user-select: none;
+}
+button:hover { background: #23314f; border-color: #2f4268; }
+button:active { transform: scale(0.98); }
+button:disabled { opacity: 0.4; cursor: not-allowed; transform: none !important; }
+
+button.btn-primary {
+  background: var(--blue);
+  border-color: var(--blue);
+  color: #fff;
+  box-shadow: 0 1px 4px var(--blue-glow);
+}
+button.btn-primary:hover { background: var(--blue-hover); border-color: var(--blue-hover); }
+
+button.btn-success {
+  background: #0f766e;
+  border-color: #14b8a6;
+  color: #ccfbf1;
+}
+button.btn-success:hover { background: #115e59; }
+
+button.btn-danger {
+  background: var(--rose-bg);
+  border-color: var(--rose-border);
+  color: #fda4af;
+}
+button.btn-danger:hover { background: #401827; border-color: #7d2642; }
+
+button.btn-ghost {
+  background: transparent;
+  border-color: transparent;
+  color: var(--text-muted);
+}
+button.btn-ghost:hover { background: #1c263c; color: var(--text-main); }
+
+button.btn-icon-sm {
+  padding: 5px;
+  border-radius: 6px;
+}
+
+/* Header */
+header.app-header {
+  height: 56px;
+  background: #080d1a;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 18px;
+  flex-shrink: 0;
+  z-index: 10;
+}
+.brand-group {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+.brand-logo {
+  width: 32px;
+  height: 32px;
+  background: linear-gradient(135deg, #2563eb, #1d4ed8);
+  border-radius: 8px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #fff;
+  box-shadow: 0 2px 8px rgba(37, 99, 235, 0.3);
+}
+.brand-text h1 {
+  font-size: 15px;
+  font-weight: 700;
+  letter-spacing: -0.2px;
+}
+.brand-text .badge-local {
+  font-size: 10px;
+  padding: 1px 6px;
+  background: #17243c;
+  color: #60a5fa;
+  border-radius: 4px;
+  margin-left: 6px;
+  font-family: 'JetBrains Mono', monospace;
+  font-weight: 500;
+}
+
+/* Top Stats Pills */
+.stats-bar {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #0d1424;
+  border: 1px solid var(--border);
+  border-radius: 20px;
+  padding: 3px 12px;
+  font-size: 11px;
+}
+.stat-item {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  color: var(--text-muted);
+}
+.stat-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.stat-dot.running { background: var(--emerald); box-shadow: 0 0 6px var(--emerald); }
+.stat-dot.stopped { background: var(--text-dim); }
+.stat-divider { width: 1px; height: 10px; background: var(--border); margin: 0 4px; }
+
+.header-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+/* Main Two-Pane Cockpit */
+.app-container {
+  display: flex;
+  flex: 1;
+  height: calc(100vh - 56px);
+  overflow: hidden;
+  position: relative;
+}
+
+/* Left Sidebar: Service List */
+.sidebar-panel {
+  width: 380px;
+  min-width: 260px;
+  max-width: 85vw;
+  background: var(--bg-sidebar);
+  border-right: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: relative;
+}
+.sidebar-header {
+  padding: 12px 14px;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.sidebar-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+}
+.sidebar-title {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.search-wrapper {
+  position: relative;
+}
+.search-wrapper input {
+  width: 100%;
+  background: #090e1b;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  padding: 7px 10px 7px 30px;
+  color: var(--text-main);
+  font-size: 12px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.search-wrapper input:focus { border-color: var(--border-focus); }
+.search-wrapper .search-icon {
+  position: absolute;
+  left: 9px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+  pointer-events: none;
+}
+.filter-tabs {
+  display: flex;
+  gap: 4px;
+}
+.filter-btn {
+  flex: 1;
+  text-align: center;
+  justify-content: center;
+  font-size: 11px;
+  padding: 4px 6px;
+  background: transparent;
+  border: 1px solid transparent;
+  color: var(--text-dim);
+}
+.filter-btn.active {
+  background: #172238;
+  border-color: var(--border);
+  color: var(--text-main);
+  font-weight: 600;
+}
+
+/* Draggable Splitter Divider */
+.resizer {
+  width: 6px;
+  background: #141c2e;
+  cursor: col-resize;
+  position: relative;
+  flex-shrink: 0;
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+  z-index: 20;
+}
+.resizer:hover, .resizer.dragging {
+  background: var(--blue);
+  box-shadow: 0 0 10px var(--blue-glow);
+}
+.resizer::after {
+  content: '';
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 2px;
+  height: 32px;
+  background: rgba(255, 255, 255, 0.2);
+  border-radius: 2px;
+}
+.resizer:hover::after, .resizer.dragging::after {
+  background: #ffffff;
+}
+
+/* Service Card List - Multi-column responsive grid on stretch */
+.services-scroll-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 10px;
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  align-content: start;
+  gap: 10px;
+}
+.service-card {
+  background: var(--bg-card);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 11px 12px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+  position: relative;
+  border-left: 3px solid transparent;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  min-width: 0;
+}
+.service-card:hover {
+  background: var(--bg-card-hover);
+  border-color: #2b3d63;
+}
+.service-card.active {
+  background: var(--bg-card-active);
+  border-color: #3b5280;
+  border-left-color: var(--blue);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.25);
+}
+.service-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 4px;
+}
+.service-name {
+  font-weight: 600;
+  font-size: 13px;
+  color: var(--text-main);
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.status-pill {
+  font-size: 10px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
+  padding: 2px 7px;
+  border-radius: 12px;
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  flex-shrink: 0;
+}
+.status-pill.running {
+  background: var(--emerald-bg);
+  border: 1px solid var(--emerald-border);
+  color: #34d399;
+}
+.status-pill.stopped {
+  background: #1a2233;
+  border: 1px solid #28354f;
+  color: var(--text-muted);
+}
+.status-beacon {
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  display: inline-block;
+}
+.status-pill.running .status-beacon {
+  background: var(--emerald);
+  box-shadow: 0 0 6px var(--emerald);
+  animation: pulse-beacon 2s infinite ease-in-out;
+}
+.status-pill.stopped .status-beacon {
+  background: var(--text-dim);
+}
+
+@keyframes pulse-beacon {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50% { opacity: 0.4; transform: scale(0.85); }
+}
+
+.service-path {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-bottom: 8px;
+}
+
+.service-card-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-top: 8px;
+  border-top: 1px solid rgba(255, 255, 255, 0.04);
+}
+.card-action-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.card-action-group button {
+  padding: 4px 8px;
+  font-size: 11px;
+}
+.unread-dot {
+  width: 6px;
+  height: 6px;
+  background: var(--blue);
+  border-radius: 50%;
+  display: none;
+  box-shadow: 0 0 6px var(--blue);
+}
+.unread-dot.visible { display: inline-block; }
+
+/* Right Console / Terminal Panel */
+.terminal-panel {
+  flex: 1;
+  min-width: 320px;
+  background: var(--bg-base);
+  display: flex;
+  flex-direction: column;
+  height: 100%;
+  overflow: hidden;
+  position: relative;
+}
+
+/* Console Top Area */
+.console-header-container {
+  background: #090f1d;
+  border-bottom: 1px solid var(--border);
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+}
+.console-primary-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 8px 14px;
+  gap: 10px;
+  flex-wrap: wrap;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.04);
+}
+.console-service-title-group {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: wrap;
+  min-width: 0;
+}
+.console-title {
+  font-size: 14px;
+  font-weight: 700;
+  white-space: nowrap;
+}
+.console-actions-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.console-tools-group {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.console-sub-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 6px 14px;
+  background: #070c17;
+  gap: 10px;
+  font-size: 11px;
+  flex-wrap: wrap;
+}
+.console-path-badge {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 11px;
+  color: var(--text-muted);
+  background: #0f1626;
+  border: 1px solid var(--border);
+  padding: 3px 8px;
+  border-radius: 5px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+.console-path-badge:hover { color: var(--text-main); border-color: #3b5078; background: #151e33; }
+.console-sub-tools {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-shrink: 0;
+}
+.console-search {
+  position: relative;
+  width: 160px;
+}
+.console-search input {
+  width: 100%;
+  background: #0d1527;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  padding: 4px 8px 4px 24px;
+  color: var(--text-main);
+  font-size: 11px;
+  outline: none;
+}
+.console-search input:focus { border-color: var(--border-focus); }
+.console-search .icon {
+  position: absolute;
+  left: 6px;
+  top: 50%;
+  transform: translateY(-50%);
+  color: var(--text-dim);
+}
+.terminal-meta-pill {
+  font-size: 11px;
+  color: var(--text-dim);
+  font-family: 'JetBrains Mono', monospace;
+  padding: 2px 7px;
+  background: #121929;
+  border-radius: 4px;
+}
+
+/* Terminal Screen */
+.terminal-screen {
+  flex: 1;
+  background: #040711;
+  overflow-y: auto;
+  padding: 14px 16px;
+  font-family: 'JetBrains Mono', Consolas, Monaco, monospace;
+  font-size: 12px;
+  line-height: 1.6;
+  color: #cbd5e1;
+  user-select: text;
+  word-break: break-all;
+  white-space: pre-wrap;
+  position: relative;
+}
+.terminal-screen.nowrap {
+  white-space: pre;
+  word-break: normal;
+  overflow-x: auto;
+}
+
+.terminal-line {
+  display: block;
+  min-height: 19px;
+  padding: 1px 0;
+  transition: background 0.1s;
+}
+.terminal-line:hover { background: rgba(255, 255, 255, 0.03); }
+.terminal-line.error-line { background: rgba(239, 68, 68, 0.08); border-left: 2px solid var(--rose); padding-left: 6px; }
+
+/* ANSI Color Classes */
+.c-red { color: #f87171; font-weight: 600; }
+.c-green { color: #4ade80; }
+.c-yellow { color: #fbbf24; }
+.c-blue { color: #60a5fa; }
+.c-magenta { color: #c084fc; }
+.c-cyan { color: #38bdf8; }
+.c-white { color: #f8fafc; }
+.c-gray { color: #64748b; }
+.bold { font-weight: 700; }
+.dim { opacity: 0.6; }
+
+/* Terminal Floating Controls */
+.terminal-scroll-btn {
+  position: absolute;
+  bottom: 20px;
+  right: 24px;
+  background: #1e293b;
+  color: var(--text-main);
+  border: 1px solid #334155;
+  box-shadow: 0 4px 14px rgba(0,0,0,0.4);
+  padding: 7px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  display: none;
+  align-items: center;
+  gap: 6px;
+  z-index: 5;
+  cursor: pointer;
+}
+.terminal-scroll-btn:hover { background: #334155; }
+.terminal-scroll-btn.visible { display: flex; }
+
+/* Empty / No Selection State */
+.empty-state {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  height: 100%;
+  min-height: 160px;
+  color: var(--text-dim);
+  text-align: center;
+  padding: 24px;
+}
+.empty-state-icon {
+  width: 48px;
+  height: 48px;
+  color: #27354f;
+  margin-bottom: 12px;
+}
+.empty-state h3 {
+  font-size: 15px;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.empty-state p {
+  font-size: 12px;
+  max-width: 340px;
+}
+
+/* Modal Dialog */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(4, 7, 16, 0.75);
+  backdrop-filter: blur(6px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 100;
+  opacity: 0;
+  pointer-events: none;
+  transition: opacity 0.2s ease;
+}
+.modal-overlay.open {
+  opacity: 1;
+  pointer-events: auto;
+}
+.modal-box {
+  width: 90%;
+  max-width: 480px;
+  background: #0f172a;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  padding: 22px;
+  transform: translateY(12px) scale(0.98);
+  transition: transform 0.2s ease;
+}
+.modal-overlay.open .modal-box {
+  transform: translateY(0) scale(1);
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 14px;
+}
+.modal-header h2 {
+  font-size: 16px;
+  font-weight: 700;
+}
+.modal-body p {
+  font-size: 12px;
+  color: var(--text-muted);
+  margin-bottom: 16px;
+}
+.form-field {
+  margin-bottom: 14px;
+}
+.form-field label {
+  display: block;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}
+.form-field input {
+  width: 100%;
+  background: #080d19;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 9px 12px;
+  color: var(--text-main);
+  font-size: 13px;
+  outline: none;
+  transition: border-color 0.15s;
+}
+.form-field input:focus { border-color: var(--border-focus); }
+.form-field .field-hint {
+  font-size: 11px;
+  color: var(--text-dim);
+  margin-top: 5px;
+}
+.modal-footer {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  margin-top: 20px;
+}
+
+/* Floating Toasts Centered Atop Nav Bar */
+#toast-container {
+  position: fixed;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 6px;
+  z-index: 9999;
+  pointer-events: none;
+}
+.toast-msg {
+  background: #151e33;
+  border: 1px solid #33466e;
+  color: #f1f5f9;
+  padding: 6px 14px;
+  border-radius: 20px;
+  font-size: 12px;
+  font-weight: 500;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.5);
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  animation: toast-drop 0.15s ease-out;
+  pointer-events: auto;
+  cursor: pointer;
+  user-select: none;
+  backdrop-filter: blur(8px);
+}
+.toast-msg:hover { filter: brightness(1.15); }
+.toast-msg.error { background: #3b1219; border-color: #881337; color: #fecdd3; }
+.toast-msg.success { background: #063124; border-color: #0f766e; color: #a7f3d0; }
+@keyframes toast-drop {
+  from { opacity: 0; transform: translateY(-14px) scale(0.96); }
+  to { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+/* Responsive adjustments */
+@media (max-width: 860px) {
+  .sidebar-panel { width: 100% !important; max-width: none; }
+  .resizer { display: none; }
+  .terminal-panel { display: none; }
+  .terminal-panel.mobile-active { display: flex; position: absolute; inset: 0; z-index: 50; }
+}
+</style>
+</head>
+<body>
+
+<!-- Global Header -->
+<header class="app-header">
+  <div class="brand-group">
+    <div class="brand-logo">
+      <span class="icon">
+        <svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg>
+      </span>
+    </div>
+    <div class="brand-text">
+      <h1>Local Service Manager <span class="badge-local" id="connectionBadge">127.0.0.1:4173</span></h1>
+    </div>
+  </div>
+
+  <!-- Global Stats -->
+  <div class="stats-bar">
+    <div class="stat-item">
+      <span id="stat-total" style="font-weight:600; color:var(--text-main);">0</span>
+      <span>Total</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-dot running"></span>
+      <span id="stat-running" style="font-weight:600; color:var(--emerald);">0</span>
+      <span>Running</span>
+    </div>
+    <div class="stat-divider"></div>
+    <div class="stat-item">
+      <span class="stat-dot stopped"></span>
+      <span id="stat-stopped" style="font-weight:600;">0</span>
+      <span>Stopped</span>
+    </div>
+  </div>
+
+  <!-- Global Actions -->
+  <div class="header-actions">
+    <button class="btn-success" onclick="allAction('start-all')">
+      <span class="icon"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></span>
+      Start All
+    </button>
+    <button class="btn-danger" onclick="allAction('stop-all')">
+      <span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg></span>
+      Stop All
+    </button>
+    <button class="btn-primary" onclick="openAddModal()">
+      <span class="icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></span>
+      New Service
+    </button>
+  </div>
+</header>
+
+<!-- Main Master-Detail Workstation -->
+<div class="app-container">
+
+  <!-- Left Sidebar: Services Cockpit (Draggable Width) -->
+  <aside class="sidebar-panel" id="sidebarPanel">
+    <div class="sidebar-header">
+      <div class="sidebar-title-row">
+        <span class="sidebar-title">
+          <span class="icon"><svg viewBox="0 0 24 24"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect><line x1="8" y1="21" x2="16" y2="21"></line><line x1="12" y1="17" x2="12" y2="21"></line></svg></span>
+          Services Cockpit
+        </span>
+        <div style="display:flex; align-items:center; gap:6px;">
+          <span id="colCountPill" style="font-size:10px; padding:2px 7px; background:#121929; border:1px solid var(--border); border-radius:4px; font-family:'JetBrains Mono'; color:var(--text-muted);">1 col</span>
+          <span id="service-count-badge" style="font-size:11px; color:var(--text-dim); font-family:'JetBrains Mono';">0 items</span>
+        </div>
+      </div>
+
+      <!-- Quick Search Filter -->
+      <div class="search-wrapper">
+        <span class="icon search-icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
+        <input type="text" id="serviceSearch" placeholder="Filter services by name or path..." oninput="handleServiceFilter()">
+      </div>
+
+      <!-- Filter Tabs -->
+      <div class="filter-tabs">
+        <button class="filter-btn active" id="filter-all" onclick="setFilter('all')">All (<span id="filter-count-all">0</span>)</button>
+        <button class="filter-btn" id="filter-running" onclick="setFilter('running')">Running (<span id="filter-count-running">0</span>)</button>
+        <button class="filter-btn" id="filter-stopped" onclick="setFilter('stopped')">Stopped (<span id="filter-count-stopped">0</span>)</button>
+      </div>
+    </div>
+
+    <!-- Service Card Items -->
+    <div class="services-scroll-list" id="servicesList">
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <span class="icon" style="width:36px;height:36px;"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="8" x2="12" y2="12"></line><line x1="12" y1="16" x2="12.01" y2="16"></line></svg></span>
+        </div>
+        <h3>Loading services...</h3>
+      </div>
+    </div>
+  </aside>
+
+  <!-- Draggable Divider Resizer -->
+  <div class="resizer" id="dragResizer" title="Drag to resize sidebar (double-click to reset width)"></div>
+
+  <!-- Right Panel: Live Terminal Inspector -->
+  <main class="terminal-panel" id="terminalPanel">
+    
+    <!-- Console Toolbar: 2-Row Responsive Layout (Never overlaps, never hides path) -->
+    <div class="console-header-container" id="consoleHeader">
+      <!-- Row 1: Active Service & Actions + Quick Terminal Toggles -->
+      <div class="console-primary-row">
+        <div class="console-service-title-group">
+          <div class="console-title" id="activeServiceName">Select a service</div>
+          <div class="status-pill stopped" id="activeServiceStatus">
+            <span class="status-beacon"></span>
+            <span id="activeServiceStatusText">Stopped</span>
+          </div>
+          <div class="console-actions-group">
+            <button id="btnActiveStart" class="btn-primary" onclick="activeAction('start')" title="Start service">
+              <span class="icon"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></span>
+              Start
+            </button>
+            <button id="btnActiveStop" class="btn-danger" onclick="activeAction('stop')" title="Stop service">
+              <span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg></span>
+              Stop
+            </button>
+            <button id="btnActiveRestart" onclick="activeAction('restart')" title="Restart service">
+              <span class="icon"><svg viewBox="0 0 24 24"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></span>
+              Restart
+            </button>
+          </div>
+        </div>
+
+        <div class="console-tools-group">
+          <button id="btnAutoScroll" class="btn-ghost" onclick="toggleAutoScroll()" title="Toggle Auto Scroll">
+            <span class="icon"><svg viewBox="0 0 24 24"><path d="M12 5v14"></path><path d="m19 12-7 7-7-7"></path></svg></span>
+            <span id="autoScrollLabel">Auto-scroll: ON</span>
+          </button>
+          <button id="btnWrap" class="btn-ghost" onclick="toggleWrap()" title="Toggle Line Wrap">
+            <span class="icon"><svg viewBox="0 0 24 24"><polyline points="17 1 21 5 17 9"></polyline><path d="M3 11V9a4 4 0 0 1 4-4h14"></path><polyline points="7 23 3 19 7 15"></polyline><path d="M21 13v2a4 4 0 0 1-4 4H3"></path></svg></span>
+            Wrap
+          </button>
+          <button class="btn-ghost btn-icon-sm" onclick="copyAllLogs()" title="Copy entire log">
+            <span class="icon"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></span>
+          </button>
+          <button class="btn-ghost btn-icon-sm" onclick="clearActiveTerminal()" title="Clear terminal view">
+            <span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="4.93" y1="4.93" x2="19.07" y2="19.07"></line></svg></span>
+          </button>
+        </div>
+      </div>
+
+      <!-- Row 2: Working Directory (Always Visible!) + In-log Search & Line Count -->
+      <div class="console-sub-row">
+        <div class="console-path-badge" id="activeServicePath" title="Click to copy repository path" onclick="copyActivePath()">
+          <span class="icon" style="width:12px;height:12px;color:#60a5fa;"><svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"></path></svg></span>
+          <span id="activeServicePathText" style="overflow:hidden;text-overflow:ellipsis;">--</span>
+          <span class="icon" style="width:11px;height:11px;opacity:0.6;"><svg viewBox="0 0 24 24"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path></svg></span>
+        </div>
+
+        <div class="console-sub-tools">
+          <div class="console-search">
+            <span class="icon"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"></circle><line x1="21" y1="21" x2="16.65" y2="16.65"></line></svg></span>
+            <input type="text" id="logFilter" placeholder="Filter log output..." oninput="filterLogs()">
+          </div>
+          <span class="terminal-meta-pill" id="logLinesCount">0 lines</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Live Terminal Screen -->
+    <div class="terminal-screen" id="terminalScreen" onscroll="handleTerminalScroll()">
+      <div id="terminalLines"></div>
+    </div>
+
+    <!-- Scroll To Bottom Floating Button -->
+    <div class="terminal-scroll-btn" id="btnScrollBottom" onclick="scrollToBottom(true)">
+      <span class="icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><polyline points="19 12 12 19 5 12"></polyline></svg></span>
+      Scroll to bottom
+    </div>
+  </main>
+</div>
+
+<!-- Modal: Add Service -->
+<div class="modal-overlay" id="addModal" onclick="handleModalBackdropClick(event)">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h2>Add New Service</h2>
+      <button class="btn-ghost btn-icon-sm" onclick="closeAddModal()">
+        <span class="icon"><svg viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg></span>
+      </button>
+    </div>
+    <div class="modal-body">
+      <p>Register a local Node.js service. The manager will execute <code>npm start</code> in the repository root directory.</p>
+      <form id="addForm" onsubmit="submitNewService(event)">
+        <div class="form-field">
+          <label for="name">Service Name</label>
+          <input type="text" id="name" placeholder="e.g. Auth Service or central" required autocomplete="off">
+        </div>
+        <div class="form-field">
+          <label for="cwd">Repository Root Directory (Absolute Path)</label>
+          <input type="text" id="cwd" placeholder="D:\Projects\my-service" required autocomplete="off">
+          <div class="field-hint">Must contain a <code>package.json</code> file with a <code>start</code> script.</div>
+        </div>
+        <div class="modal-footer">
+          <button type="button" class="btn-ghost" onclick="closeAddModal()">Cancel</button>
+          <button type="submit" class="btn-primary" id="btnSubmitAdd">
+            <span class="icon"><svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"></line><line x1="5" y1="12" x2="19" y2="12"></line></svg></span>
+            Add Service
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Container -->
+<div id="toast-container"></div>
+
+<script>
+// State Store
+let services = [];
+let activeServiceId = null;
+let currentFilter = 'all'; // 'all' | 'running' | 'stopped'
+let searchQuery = '';
+let logFilterQuery = '';
+let autoScroll = true;
+let isLineWrap = true;
+let unreadServices = new Set();
+
+const $ = id => document.getElementById(id);
+
+// Toast Notification (Fast dismiss & centered atop nav bar)
+function toast(msg, type = 'info') {
+  const container = $('toast-container');
+  const el = document.createElement('div');
+  el.className = `toast-msg ${type}`;
+  
+  const icon = type === 'error' 
+    ? `<span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="15" y1="9" x2="9" y2="15"></line><line x1="9" y1="9" x2="15" y2="15"></line></svg></span>`
+    : type === 'success' 
+    ? `<span class="icon"><svg viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"></polyline></svg></span>`
+    : `<span class="icon"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"></circle><line x1="12" y1="16" x2="12" y2="12"></line><line x1="12" y1="8" x2="12.01" y2="8"></line></svg></span>`;
+    
+  el.innerHTML = `${icon} <span>${escHtml(msg)}</span>`;
+  
+  const dismiss = () => {
+    el.style.opacity = '0';
+    el.style.transform = 'translateY(-10px) scale(0.95)';
+    el.style.transition = 'all 0.15s ease';
+    setTimeout(() => el.remove(), 160);
+  };
+  el.onclick = dismiss;
+  container.appendChild(el);
+  setTimeout(dismiss, 1800);
+}
+
+// API Helper
+async function api(url, method = 'GET', body) {
+  const res = await fetch(url, {
+    method,
+    headers: { 'Content-Type': 'application/json' },
+    body: body ? JSON.stringify(body) : undefined
+  });
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Server request failed');
+  return data;
+}
+
+// HTML Escaping
+function escHtml(s) {
+  return String(s || '').replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+// ANSI to HTML Parser for Terminal output
+function ansiToHtml(str) {
+  const codeMap = {
+    '0': 'reset', '1': 'bold', '2': 'dim',
+    '31': 'c-red', '32': 'c-green', '33': 'c-yellow',
+    '34': 'c-blue', '35': 'c-magenta', '36': 'c-cyan',
+    '37': 'c-white', '90': 'c-gray', '39': 'reset-fg'
+  };
+  
+  let result = '';
+  const activeClasses = new Set();
+  const parts = String(str).split(/(\u001b\[[0-9;]*m)/g);
+  
+  for (const part of parts) {
+    if (part.startsWith('\u001b[')) {
+      const codes = part.slice(2, -1).split(';');
+      for (const code of codes) {
+        if (code === '' || code === '0') {
+          activeClasses.clear();
+        } else if (code === '39') {
+          for (const c of Array.from(activeClasses)) {
+            if (c.startsWith('c-')) activeClasses.delete(c);
+          }
+        } else if (codeMap[code]) {
+          activeClasses.add(codeMap[code]);
+        }
+      }
+    } else if (part) {
+      if (activeClasses.size > 0) {
+        result += `<span class="${Array.from(activeClasses).join(' ')}">${escHtml(part)}</span>`;
+      } else {
+        result += escHtml(part);
+      }
+    }
+  }
+  return result;
+}
+
+// Fetch Services & Update State
+async function refreshServices(preserveSelection = true) {
+  try {
+    const list = await api('/api/services');
+    services = list;
+    
+    // Default selection
+    if (!activeServiceId && services.length > 0) {
+      activeServiceId = services[0].id;
+    } else if (activeServiceId && !services.some(s => s.id === activeServiceId)) {
+      activeServiceId = services.length > 0 ? services[0].id : null;
+    }
+    
+    setServerOnline(true);
+    updateStats();
+    renderServiceCards();
+    renderTerminal();
+  } catch (err) {
+    setServerOnline(false);
+  }
+}
+
+// Update Top Counter Stats
+function updateStats() {
+  const total = services.length;
+  const running = services.filter(s => s.status === 'running').length;
+  const stopped = total - running;
+
+  $('stat-total').textContent = total;
+  $('stat-running').textContent = running;
+  $('stat-stopped').textContent = stopped;
+  $('service-count-badge').textContent = `${total} items`;
+
+  $('filter-count-all').textContent = total;
+  $('filter-count-running').textContent = running;
+  $('filter-count-stopped').textContent = stopped;
+}
+
+// Filter tab handler
+function setFilter(filter) {
+  currentFilter = filter;
+  ['all', 'running', 'stopped'].forEach(f => {
+    $(`filter-${f}`).classList.toggle('active', f === filter);
+  });
+  renderServiceCards();
+}
+
+// Search input handler
+function handleServiceFilter() {
+  searchQuery = $('serviceSearch').value.toLowerCase().trim();
+  renderServiceCards();
+}
+
+// Render Left Sidebar Service Cards
+function renderServiceCards() {
+  const container = $('servicesList');
+  
+  let filtered = services.filter(s => {
+    if (currentFilter === 'running' && s.status !== 'running') return false;
+    if (currentFilter === 'stopped' && s.status === 'running') return false;
+    if (searchQuery) {
+      const matchName = (s.name || '').toLowerCase().includes(searchQuery);
+      const matchPath = (s.cwd || '').toLowerCase().includes(searchQuery);
+      return matchName || matchPath;
+    }
+    return true;
+  });
+
+  if (services.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <span class="icon" style="width:36px;height:36px;"><svg viewBox="0 0 24 24"><polygon points="12 2 2 7 12 12 22 7 12 2"></polygon><polyline points="2 17 12 22 22 17"></polyline><polyline points="2 12 12 17 22 12"></polyline></svg></span>
+        </div>
+        <h3>No services yet</h3>
+        <p>Click "New Service" at the top to add your first local Node.js project.</p>
+        <button class="btn-primary" style="margin-top:12px;" onclick="openAddModal()">+ Add Service</button>
+      </div>`;
+    return;
+  }
+
+  if (filtered.length === 0) {
+    container.innerHTML = `
+      <div class="empty-state">
+        <h3>No matches</h3>
+        <p>No services match your search or status filter.</p>
+      </div>`;
+    return;
+  }
+
+  container.innerHTML = filtered.map(s => {
+    const isRunning = s.status === 'running';
+    const isActive = s.id === activeServiceId;
+    const hasUnread = unreadServices.has(s.id);
+
+    return `
+      <article class="service-card ${isActive ? 'active' : ''}" onclick="selectService('${s.id}')">
+        <div class="service-card-top">
+          <div class="service-name" title="${escHtml(s.name)}">
+            <span class="unread-dot ${hasUnread ? 'visible' : ''}"></span>
+            ${escHtml(s.name)}
+          </div>
+          <div class="status-pill ${isRunning ? 'running' : 'stopped'}">
+            <span class="status-beacon"></span>
+            <span>${isRunning ? 'Running' : 'Stopped'}</span>
+          </div>
+        </div>
+
+        <div class="service-path" title="${escHtml(s.cwd)}">
+          ${escHtml(s.cwd)}
+        </div>
+
+        <div class="service-card-actions">
+          <div class="card-action-group">
+            <button class="btn-primary" ${isRunning ? 'disabled' : ''} onclick="event.stopPropagation(); action('${s.id}', 'start')" title="Start service">
+              <span class="icon"><svg viewBox="0 0 24 24"><polygon points="5 3 19 12 5 21 5 3"></polygon></svg></span>
+              Start
+            </button>
+            <button class="btn-danger" ${!isRunning ? 'disabled' : ''} onclick="event.stopPropagation(); action('${s.id}', 'stop')" title="Stop service">
+              <span class="icon"><svg viewBox="0 0 24 24"><rect x="3" y="3" width="18" height="18" rx="2" ry="2"></rect></svg></span>
+              Stop
+            </button>
+            <button class="btn-ghost" ${!isRunning ? 'disabled' : ''} onclick="event.stopPropagation(); restartService('${s.id}')" title="Restart service">
+              <span class="icon"><svg viewBox="0 0 24 24"><path d="M23 4v6h-6"></path><path d="M1 20v-6h6"></path><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"></path></svg></span>
+            </button>
+          </div>
+          <button class="btn-ghost btn-icon-sm" onclick="event.stopPropagation(); removeService('${s.id}', '${escHtml(s.name)}')" title="Remove service">
+            <span class="icon"><svg viewBox="0 0 24 24"><polyline points="3 6 5 6 21 6"></polyline><path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path></svg></span>
+          </button>
+        </div>
+      </article>
+    `;
+  }).join('');
+}
+
+// Select a Service
+function selectService(id) {
+  activeServiceId = id;
+  unreadServices.delete(id);
+  renderServiceCards();
+  renderTerminal(true);
+}
+
+// Render Terminal for Active Service
+function renderTerminal(forceScrollBottom = false) {
+  const active = services.find(s => s.id === activeServiceId);
+  const linesContainer = $('terminalLines');
+
+  if (!active) {
+    $('activeServiceName').textContent = 'No Service Selected';
+    $('activeServicePathText').textContent = '--';
+    $('activeServiceStatus').className = 'status-pill stopped';
+    $('activeServiceStatusText').textContent = 'None';
+    $('btnActiveStart').disabled = true;
+    $('btnActiveStop').disabled = true;
+    $('btnActiveRestart').disabled = true;
+    linesContainer.innerHTML = `
+      <div class="empty-state">
+        <div class="empty-state-icon">
+          <span class="icon" style="width:40px;height:40px;"><svg viewBox="0 0 24 24"><polyline points="4 17 10 11 4 5"></polyline><line x1="12" y1="19" x2="20" y2="19"></line></svg></span>
+        </div>
+        <h3>No service selected</h3>
+        <p>Select a service from the left sidebar to inspect real-time logs and output.</p>
+      </div>`;
+    $('logLinesCount').textContent = '0 lines';
+    return;
+  }
+
+  // Update Console Header
+  $('activeServiceName').textContent = active.name;
+  $('activeServicePathText').textContent = active.cwd;
+  const isRunning = active.status === 'running';
+  $('activeServiceStatus').className = `status-pill ${isRunning ? 'running' : 'stopped'}`;
+  $('activeServiceStatusText').textContent = isRunning ? 'Running' : 'Stopped';
+
+  $('btnActiveStart').disabled = isRunning;
+  $('btnActiveStop').disabled = !isRunning;
+  $('btnActiveRestart').disabled = !isRunning;
+
+  const logs = active.logs || [];
+  $('logLinesCount').textContent = `${logs.length} lines`;
+
+  // Render Log Lines
+  let visibleLogs = logs;
+  if (logFilterQuery) {
+    visibleLogs = logs.filter(line => line.toLowerCase().includes(logFilterQuery));
+  }
+
+  if (visibleLogs.length === 0) {
+    linesContainer.innerHTML = logFilterQuery 
+      ? `<div style="color:var(--text-dim); padding:12px 0;">No logs matching filter "${escHtml(logFilterQuery)}".</div>`
+      : `<div style="color:var(--text-dim); padding:12px 0;"><span class="c-gray">&gt; Process ready. Awaiting log output from npm start...</span></div>`;
+  } else {
+    linesContainer.innerHTML = visibleLogs.map(line => {
+      const isErr = /error|failed|crash|exception/i.test(line);
+      return `<div class="terminal-line ${isErr ? 'error-line' : ''}">${ansiToHtml(line)}</div>`;
+    }).join('');
+  }
+
+  if (forceScrollBottom || autoScroll) {
+    scrollToBottom();
+  }
+}
+
+// Append single log line seamlessly without re-rendering entire screen
+function appendLogLineToActiveTerminal(id, line) {
+  const service = services.find(s => s.id === id);
+  if (!service) return;
+  service.logs = service.logs || [];
+  service.logs.push(line);
+  if (service.logs.length > 500) service.logs.shift();
+
+  if (id === activeServiceId) {
+    $('logLinesCount').textContent = `${service.logs.length} lines`;
+    if (!logFilterQuery || line.toLowerCase().includes(logFilterQuery)) {
+      const linesContainer = $('terminalLines');
+      const div = document.createElement('div');
+      const isErr = /error|failed|crash|exception/i.test(line);
+      div.className = `terminal-line ${isErr ? 'error-line' : ''}`;
+      div.innerHTML = ansiToHtml(line);
+      linesContainer.appendChild(div);
+
+      if (autoScroll) {
+        scrollToBottom();
+      } else {
+        $('btnScrollBottom').classList.add('visible');
+      }
+    }
+  } else {
+    unreadServices.add(id);
+    const cardDot = document.querySelector(`.service-card[onclick*="${id}"] .unread-dot`);
+    if (cardDot) cardDot.classList.add('visible');
+  }
+}
+
+// Auto Scroll Helpers
+function scrollToBottom(smooth = false) {
+  const screen = $('terminalScreen');
+  screen.scrollTo({
+    top: screen.scrollHeight,
+    behavior: smooth ? 'smooth' : 'auto'
+  });
+  $('btnScrollBottom').classList.remove('visible');
+}
+
+function handleTerminalScroll() {
+  const screen = $('terminalScreen');
+  const atBottom = screen.scrollHeight - screen.scrollTop - screen.clientHeight < 40;
+  if (atBottom) {
+    $('btnScrollBottom').classList.remove('visible');
+  } else if (!autoScroll) {
+    $('btnScrollBottom').classList.add('visible');
+  }
+}
+
+function toggleAutoScroll() {
+  autoScroll = !autoScroll;
+  $('autoScrollLabel').textContent = `Auto-scroll: ${autoScroll ? 'ON' : 'OFF'}`;
+  $('btnAutoScroll').style.color = autoScroll ? 'var(--blue)' : 'var(--text-muted)';
+  if (autoScroll) scrollToBottom(true);
+}
+
+function toggleWrap() {
+  isLineWrap = !isLineWrap;
+  $('terminalScreen').classList.toggle('nowrap', !isLineWrap);
+  $('btnWrap').style.color = isLineWrap ? 'var(--blue)' : 'var(--text-muted)';
+}
+
+function filterLogs() {
+  logFilterQuery = $('logFilter').value.toLowerCase().trim();
+  renderTerminal(false);
+}
+
+function clearActiveTerminal() {
+  const active = services.find(s => s.id === activeServiceId);
+  if (active) active.logs = [];
+  renderTerminal(true);
+  toast('Terminal buffer cleared', 'info');
+}
+
+async function copyAllLogs() {
+  const active = services.find(s => s.id === activeServiceId);
+  if (!active || !active.logs || active.logs.length === 0) {
+    toast('No logs to copy', 'info');
+    return;
+  }
+  const rawText = active.logs.map(l => l.replace(/\u001b\[[0-9;]*m/g, '')).join('\n');
+  try {
+    await navigator.clipboard.writeText(rawText);
+    toast('Copied all logs to clipboard!', 'success');
+  } catch {
+    toast('Failed to copy to clipboard', 'error');
+  }
+}
+
+async function copyActivePath() {
+  const active = services.find(s => s.id === activeServiceId);
+  if (!active) return;
+  try {
+    await navigator.clipboard.writeText(active.cwd);
+    toast(`Copied path: ${active.cwd}`, 'success');
+  } catch {
+    toast('Failed to copy path', 'error');
+  }
+}
+
+// Service Actions
+async function action(id, verb) {
+  try {
+    await api(`/api/services/${id}/${verb}`, 'POST');
+    toast(`${verb.toUpperCase()} requested for service`, 'info');
+    await refreshServices();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+async function activeAction(verb) {
+  if (!activeServiceId) return;
+  if (verb === 'restart') {
+    await restartService(activeServiceId);
+  } else {
+    await action(activeServiceId, verb);
+  }
+}
+
+async function restartService(id) {
+  try {
+    toast('Restarting service...', 'info');
+    await api(`/api/services/${id}/restart`, 'POST');
+    toast('Service restarted successfully', 'success');
+    await refreshServices();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+async function allAction(verb) {
+  try {
+    toast(`${verb.replace('-', ' ').toUpperCase()} initiated`, 'info');
+    await api(`/api/${verb}`, 'POST');
+    await refreshServices();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+async function removeService(id, name) {
+  if (!confirm(`Are you sure you want to remove "${name}" from the dashboard?\n(This will not delete the project files).`)) return;
+  try {
+    await api(`/api/services/${id}`, 'DELETE');
+    toast(`Service "${name}" removed`, 'info');
+    if (activeServiceId === id) activeServiceId = null;
+    await refreshServices();
+  } catch (err) {
+    toast(err.message, 'error');
+  }
+}
+
+// Modal Handlers
+function openAddModal() {
+  $('addModal').classList.add('open');
+  $('name').focus();
+}
+
+function closeAddModal() {
+  $('addModal').classList.remove('open');
+  $('addForm').reset();
+}
+
+function handleModalBackdropClick(e) {
+  if (e.target === $('addModal')) closeAddModal();
+}
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') closeAddModal();
+  if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+    e.preventDefault();
+    $('serviceSearch').focus();
+  }
+});
+
+async function submitNewService(e) {
+  e.preventDefault();
+  const name = $('name').value.trim();
+  const cwd = $('cwd').value.trim();
+  const btn = $('btnSubmitAdd');
+  
+  if (!name || !cwd) {
+    toast('Name and repository folder are required', 'error');
+    return;
+  }
+
+  try {
+    btn.disabled = true;
+    btn.textContent = 'Verifying...';
+    const added = await api('/api/services', 'POST', { name, cwd });
+    toast(`Service "${added.name}" added successfully!`, 'success');
+    closeAddModal();
+    activeServiceId = added.id;
+    await refreshServices();
+  } catch (err) {
+    toast(err.message, 'error');
+  } finally {
+    btn.disabled = false;
+    btn.textContent = 'Add Service';
+  }
+}
+
+// Draggable Sidebar Resizer Implementation
+function updateColCount() {
+  const sidebar = $('sidebarPanel');
+  const pill = $('colCountPill');
+  if (!sidebar || !pill) return;
+  const w = sidebar.getBoundingClientRect().width;
+  const count = Math.max(1, Math.floor((w - 20 + 10) / 290));
+  pill.textContent = `${count} ${count === 1 ? 'col' : 'cols'}`;
+}
+
+function initSidebarResizer() {
+  const sidebar = $('sidebarPanel');
+  const resizer = $('dragResizer');
+  if (!sidebar || !resizer) return;
+
+  const minW = 280;
+  const minTerminalW = 380;
+  const getMaxW = () => Math.max(minW, window.innerWidth - minTerminalW);
+
+  // Restore saved width from localStorage
+  const savedWidth = localStorage.getItem('lsm_sidebar_width');
+  if (savedWidth) {
+    const w = parseInt(savedWidth, 10);
+    const maxW = getMaxW();
+    if (!isNaN(w) && w >= minW && w <= maxW) {
+      sidebar.style.width = `${w}px`;
+    }
+  }
+  updateColCount();
+
+  let isDragging = false;
+  let startX = 0;
+  let startWidth = 0;
+
+  resizer.addEventListener('mousedown', e => {
+    isDragging = true;
+    startX = e.clientX;
+    startWidth = sidebar.getBoundingClientRect().width;
+    resizer.classList.add('dragging');
+    document.body.style.cursor = 'col-resize';
+    document.body.style.userSelect = 'none';
+  });
+
+  window.addEventListener('mousemove', e => {
+    if (!isDragging) return;
+    const dx = e.clientX - startX;
+    let newWidth = startWidth + dx;
+    const maxW = getMaxW();
+    if (newWidth < minW) newWidth = minW;
+    if (newWidth > maxW) newWidth = maxW;
+    sidebar.style.width = `${newWidth}px`;
+    updateColCount();
+  });
+
+  window.addEventListener('mouseup', () => {
+    if (isDragging) {
+      isDragging = false;
+      resizer.classList.remove('dragging');
+      document.body.style.cursor = '';
+      document.body.style.userSelect = '';
+      const finalWidth = parseInt(sidebar.style.width, 10);
+      if (!isNaN(finalWidth)) {
+        localStorage.setItem('lsm_sidebar_width', finalWidth);
+      }
+      updateColCount();
+    }
+  });
+
+  // Double click resets to standard comfortable width (380px)
+  resizer.addEventListener('dblclick', () => {
+    sidebar.style.width = '380px';
+    localStorage.setItem('lsm_sidebar_width', 380);
+    updateColCount();
+    toast('Sidebar width reset to default', 'info');
+  });
+
+  window.addEventListener('resize', () => {
+    const maxW = getMaxW();
+    const currentW = parseInt(sidebar.style.width, 10);
+    if (currentW > maxW) {
+      sidebar.style.width = `${maxW}px`;
+    }
+    updateColCount();
+  });
+}
+
+function setServerOnline(online) {
+  const badge = $('connectionBadge');
+  if (!badge) return;
+  if (online) {
+    badge.textContent = '127.0.0.1:4173';
+    badge.style.background = '#17243c';
+    badge.style.color = '#60a5fa';
+  } else {
+    badge.textContent = 'Manager Offline';
+    badge.style.background = '#3b1219';
+    badge.style.color = '#fda4af';
+    // When manager closes, mark all services stopped in UI
+    if (services.some(s => s.status === 'running')) {
+      services = services.map(s => ({ ...s, status: 'stopped' }));
+      updateStats();
+      renderServiceCards();
+      renderTerminal();
+    }
+  }
+}
+
+// Server-Sent Events (SSE) Stream
+function initEvents() {
+  const events = new EventSource('/api/events');
+  events.onopen = () => {
+    setServerOnline(true);
+    refreshServices();
+  };
+  events.onmessage = e => {
+    setServerOnline(true);
+    try {
+      const data = JSON.parse(e.data);
+      if (data.type === 'log') {
+        appendLogLineToActiveTerminal(data.id, data.line);
+      } else if (data.type === 'changed') {
+        refreshServices();
+      }
+    } catch {
+      // ignore
+    }
+  };
+  events.onerror = () => {
+    setServerOnline(false);
+  };
+}
+
+// Initial Boot
+refreshServices();
+initSidebarResizer();
+initEvents();
+setInterval(() => refreshServices(), 5000);
+</script>
+</body>
+</html>

@@ -1,0 +1,27 @@
+[
+  {
+    "id": "de6c0d4e-4b69-43c4-9c71-766f4d4ba3b5",
+    "name": "central",
+    "cwd": "D:\\Adams\\ABG-PORTAL\\BBBackendFramwork\\CentralizedApp-Service\\BBauthanduseradmin-service-mongo"
+  },
+  {
+    "id": "482009c5-317f-4b36-b79e-00c1cea427c9",
+    "name": "Mail_Service",
+    "cwd": "D:\\Adams\\ABG-PORTAL\\BBBackendFramwork\\CentralizedApp-Service\\mail_service"
+  },
+  {
+    "id": "9866efa4-e975-421e-ade5-ad79d54c9c9e",
+    "name": "Common_service",
+    "cwd": "D:\\Adams\\ABG-PORTAL\\BBBackendFramwork\\CommonLibrary-Service\\BBauthanduseradmin-service-mongo"
+  },
+  {
+    "id": "f7b210ac-8dbe-4e7a-ae7f-56aa3c01eb70",
+    "name": "Forms service",
+    "cwd": "D:\\Adams\\ABG-PORTAL\\BBBackendFramwork\\BBForms-service"
+  },
+  {
+    "id": "057bf2b1-08af-452c-8c7b-ca1e992c68c4",
+    "name": "File storage",
+    "cwd": "D:\\Adams\\ABG-PORTAL\\BBBackendFramwork\\CommonLibrary-Service\\filestorage-service"
+  }
+]
